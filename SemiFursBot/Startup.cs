@@ -11,9 +11,13 @@ using Microsoft.Extensions.Hosting;
 
 using SemiFursBot.Interfaces;
 using SemiFursBot.Models;
-using SemiFursBot.Servers.Discord;
-using SemiFursBot.Servers.Discord.Commands;
-using SemiFursBot.Servers.Discord.Interfaces;
+using SemiFursBot.Services.Discord;
+using SemiFursBot.Services.Discord.Commands;
+using SemiFursBot.Services.Discord.Interfaces;
+using SemiFursBot.Services.Telegram;
+using SemiFursBot.Services.Telegram.Commands;
+
+using Telegram.Bot;
 
 namespace SemiFursBot {
 
@@ -35,17 +39,30 @@ namespace SemiFursBot {
         public void ConfigureServices(HostBuilderContext hostBuilderContext, IServiceCollection services) {
             SetupDiscordSingletons(out var socketClient);
 
+            AddTelegramClient(services);
+
             services
                 .AddSingleton<LoggerConfig>()
                 .AddSingleton<DiscordConfig>();
 
             services
+                .AddSingleton<ILogger, Logger>()
+
+                .AddSingleton(socketClient)
                 .AddSingleton(new InteractionService(socketClient.Rest))
                 .AddSingleton(new CommandService())
-                .AddSingleton<ICommandHandlerService, CommandHandlerService>()
-
+                .AddSingleton<ICommandHandlerService, DiscordCommandHandlerService>()
 
                 .AddHostedService<DiscordStartup>();
+        }
+
+        private void AddTelegramClient(IServiceCollection services) {
+            var telegramConfig = new TelegramConfig(Configuration);
+            var telegramClient = new TelegramBotClient(telegramConfig.Token);
+            services
+                .AddSingleton<ITelegramBotClient>(telegramClient)
+                .AddSingleton<TelegramCommandHandlerService>()
+                .AddHostedService<TelegramStartup>();
         }
 
         private void SetupDiscordSingletons(out DiscordSocketClient socketClient) {

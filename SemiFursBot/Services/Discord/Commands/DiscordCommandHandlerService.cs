@@ -6,10 +6,10 @@ using Discord.Interactions;
 using Discord.WebSocket;
 
 using SemiFursBot.Interfaces;
-using SemiFursBot.Servers.Discord.Interfaces;
+using SemiFursBot.Services.Discord.Interfaces;
 
-namespace SemiFursBot.Servers.Discord.Commands {
-    internal class CommandHandlerService : ICommandHandlerService {
+namespace SemiFursBot.Services.Discord.Commands {
+    internal class DiscordCommandHandlerService : ICommandHandlerService {
 
         private readonly CommandService _commandService;
         private readonly InteractionService _interactionService;
@@ -17,7 +17,7 @@ namespace SemiFursBot.Servers.Discord.Commands {
         private readonly ILogger _logger;
         private readonly DiscordSocketClient _discordSocketClient;
 
-        public CommandHandlerService(DiscordSocketClient discordSocketClient, CommandService commandService,
+        public DiscordCommandHandlerService(DiscordSocketClient discordSocketClient, CommandService commandService,
             InteractionService interactionService, IServiceProvider services, ILogger logger) {
             _discordSocketClient = discordSocketClient;
             _commandService = commandService;

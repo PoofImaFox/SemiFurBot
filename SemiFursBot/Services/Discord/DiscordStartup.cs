@@ -2,9 +2,9 @@
 using Microsoft.Extensions.Hosting;
 
 using SemiFursBot.Interfaces;
-using SemiFursBot.Servers.Discord.Interfaces;
+using SemiFursBot.Services.Discord.Interfaces;
 
-namespace SemiFursBot.Servers.Discord {
+namespace SemiFursBot.Services.Discord {
     internal class DiscordStartup : IHostedService {
         private readonly ICommandHandlerService _commandHandlerService;
         private readonly ILogger _logger;
