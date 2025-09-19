@@ -10,7 +10,7 @@ namespace SemiFursBot.Models {
         }
 
         public string Token { get; set; }
-        public Dictionary<long, string> TopicNames { get; set; }
+        public Dictionary<string, (int, long)> TopicNames { get; set; }
 
         public void SaveCache() {
             var jsonContent = JsonConvert.SerializeObject(TopicNames);
@@ -19,11 +19,12 @@ namespace SemiFursBot.Models {
 
         public void LoadCache() {
             if (!File.Exists("cacheTopics.json")) {
+                TopicNames = new Dictionary<string, (int, long)>();
                 return;
             }
 
             var jsonContent = File.ReadAllText("cacheTopics.json");
-            TopicNames = JsonConvert.DeserializeObject<Dictionary<long, string>>(jsonContent);
+            TopicNames = JsonConvert.DeserializeObject<Dictionary<string, (int, long)>>(jsonContent);
         }
     }
 }

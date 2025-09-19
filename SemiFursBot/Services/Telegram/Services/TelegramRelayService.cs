@@ -42,11 +42,15 @@ namespace SemiFursBot.Services.Telegram.Services {
         }
 
         private async Task RelaySendMessage(SendMessageAction messageAction) {
-            var telegramChannelId = await _channelLinkerService.
+            var telegramChannel = await _channelLinkerService.
                 GetTelegramChannel(messageAction.ChannelName);
 
-            var telegramChannel = await _telegramBotClient.GetChat(telegramChannelId);
-            await _telegramBotClient.SendMessage(telegramChannel, messageAction.MessageContents);
+            if (telegramChannel is null) {
+                return;
+            }
+
+            (var threadId, var ChatId) = telegramChannel.Value;
+            await _telegramBotClient.SendMessage(ChatId, messageAction.MessageContents, messageThreadId: threadId);
         }
     }
 }

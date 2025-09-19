@@ -1,4 +1,6 @@
-﻿using SemiFursBot.Interfaces;
+﻿using System.Collections.Generic;
+
+using SemiFursBot.Interfaces;
 using SemiFursBot.Models;
 using SemiFursBot.Services.Relay;
 using SemiFursBot.Services.Relay.Services;
@@ -43,28 +45,33 @@ namespace SemiFursBot.Services.Telegram.Commands {
         }
 
         private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken) {
-            if (update.Message.ReplyToMessage is null || update.Message.Type is not MessageType.Text and not MessageType.Sticker) {
+            if (update.Message.ReplyToMessage is null
+                || update.Message.Type is not MessageType.Text and not MessageType.Sticker) {
                 return;
             }
 
+            var threadId = update.Message.ReplyToMessage?.MessageThreadId ?? 0;
+            var chatId = update.Message.Chat.Id;
             var channelName = update.Message.ReplyToMessage!.ForumTopicCreated.Name;
             var messageText = update.Message.Text;
 
             _logger.Info($"Received '{messageText}', from: [Ch:{channelName}]{update.Message.Chat.Username}");
-
-            if (_telegramConfig.TopicNames.TryAdd(update.Message.ReplyToMessage.Chat.Id, channelName)) {
-                _logger.Info($"Cached {update.Message.ReplyToMessage.Chat.Id} <-> {channelName}");
+            if (_telegramConfig.TopicNames.TryAdd(channelName, (threadId, chatId))) {
+                _logger.Info($"Cached {channelName} <-> {threadId}:{chatId}");
                 _telegramConfig.SaveCache();
             }
+
             if (update.Type == UpdateType.Message && update.Message is not null && !update.Message!.From.IsBot) {
                 _relayActionTracker.AddAction(new SendMessageAction() {
                     PlatformName = "Discord",
                     ActionTime = DateTime.UtcNow,
                     ChannelName = channelName,
-                    MessageContents = messageText
+                    MessageContents = $"""
+                    [Telegram]: {update.Message.From.Username}
+                    {messageText}
+                    """
                 });
             }
-
             return;
         }
 

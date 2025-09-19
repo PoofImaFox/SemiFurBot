@@ -51,11 +51,18 @@ namespace SemiFursBot.Services.Discord.Commands {
         }
 
         private Task DiscordSocketClient_MessageReceived(SocketMessage arg) {
+            if (arg.Author.IsBot) {
+                return Task.CompletedTask;
+            }
+
             _relayActionTracker.AddAction(new SendMessageAction() {
                 PlatformName = "Telegram",
                 ActionTime = DateTime.Now,
                 ChannelName = arg.Channel.Name,
-                MessageContents = arg.Content
+                MessageContents = $"""
+                [Discord]: {arg.Author.Username}
+                {arg.Content}
+                """
             });
 
             return Task.CompletedTask;

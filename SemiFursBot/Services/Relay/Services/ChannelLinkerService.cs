@@ -39,12 +39,12 @@ namespace SemiFursBot.Services.Relay.Services {
             return channel;
         }
 
-        public async Task<long?> GetTelegramChannel(string channelName) {
+        public async Task<(int, long)?> GetTelegramChannel(string channelName) {
             var cleanedName = _symbolsRegex.Replace(channelName, string.Empty);
 
-            if (_telegramConfig.TopicNames.FirstOrDefault(i => _symbolsRegex.Replace(i.Value, string.Empty)
-                .Equals(cleanedName, StringComparison.OrdinalIgnoreCase)).Key is long channelId) {
-                return channelId;
+            if (_telegramConfig.TopicNames.FirstOrDefault(i => _symbolsRegex.Replace(i.Key, string.Empty)
+                .Equals(cleanedName, StringComparison.OrdinalIgnoreCase)).Value is (int threadID, long chatId)) {
+                return (threadID, chatId);
             }
 
             return null;
