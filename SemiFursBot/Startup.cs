@@ -14,17 +14,27 @@ using SemiFursBot.Models;
 using SemiFursBot.Services.Discord;
 using SemiFursBot.Services.Discord.Commands;
 using SemiFursBot.Services.Discord.Interfaces;
+using SemiFursBot.Services.Discord.Services;
+using SemiFursBot.Services.Relay;
+using SemiFursBot.Services.Relay.Interfaces;
+using SemiFursBot.Services.Relay.Services;
 using SemiFursBot.Services.Telegram;
 using SemiFursBot.Services.Telegram.Commands;
+using SemiFursBot.Services.Telegram.Services;
 
 using Telegram.Bot;
 
 namespace SemiFursBot {
 
+    internal class Test {
+        public Dictionary<ulong, string> KeyValuePairs = new Dictionary<ulong, string>();
+    }
+
     internal class Startup : IStartup {
         private readonly ManualResetEvent _manualResetEvent = new(false);
 
         public Startup() {
+
         }
 
         public IConfiguration Configuration { get; set; } = default!;
@@ -42,6 +52,7 @@ namespace SemiFursBot {
             AddTelegramClient(services);
 
             services
+                .AddSingleton<TelegramConfig>()
                 .AddSingleton<LoggerConfig>()
                 .AddSingleton<DiscordConfig>();
 
@@ -51,8 +62,13 @@ namespace SemiFursBot {
                 .AddSingleton(socketClient)
                 .AddSingleton(new InteractionService(socketClient.Rest))
                 .AddSingleton(new CommandService())
+                .AddSingleton<DiscordRelayService>()
+                .AddSingleton<TelegramRelayService>()
+                .AddSingleton<IRelayActionTracker, RelayActionTracker>()
+                .AddSingleton<IChannelLinkerService, ChannelLinkerService>()
                 .AddSingleton<ICommandHandlerService, DiscordCommandHandlerService>()
 
+                .AddHostedService<RelayService>()
                 .AddHostedService<DiscordStartup>();
         }
 

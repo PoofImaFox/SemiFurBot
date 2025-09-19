@@ -1,4 +1,7 @@
 ﻿using SemiFursBot.Interfaces;
+using SemiFursBot.Models;
+using SemiFursBot.Services.Relay;
+using SemiFursBot.Services.Relay.Services;
 
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -10,10 +13,15 @@ namespace SemiFursBot.Services.Telegram.Commands {
     internal class TelegramCommandHandlerService {
         private readonly ILogger _logger;
         private readonly ITelegramBotClient _telegramBotClient;
+        private readonly IRelayActionTracker _relayActionTracker;
+        private readonly TelegramConfig _telegramConfig;
 
-        public TelegramCommandHandlerService(ILogger logger, ITelegramBotClient telegramBotClient) {
+        public TelegramCommandHandlerService(ILogger logger, ITelegramBotClient telegramBotClient,
+            IRelayActionTracker relayActionTracker, TelegramConfig telegramConfig) {
             _logger = logger;
             _telegramBotClient = telegramBotClient;
+            _relayActionTracker = relayActionTracker;
+            _telegramConfig = telegramConfig;
         }
 
         public async Task InitializeAsync() {
@@ -35,17 +43,26 @@ namespace SemiFursBot.Services.Telegram.Commands {
         }
 
         private async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken) {
-            if (update.Message.Type is not MessageType.Text and not MessageType.Sticker) {
+            if (update.Message.ReplyToMessage is null || update.Message.Type is not MessageType.Text and not MessageType.Sticker) {
                 return;
             }
 
-            var chatId = update.Message.Chat.Id;
+            var channelName = update.Message.ReplyToMessage!.ForumTopicCreated.Name;
             var messageText = update.Message.Text;
 
-            _logger.Info($"Received '{messageText}', from: [Ch:{chatId}]{update.Message.Chat.Username}");
-            if (update.Type == UpdateType.Message && update.Message is not null) {
-                //if (!_commandResolvingService.InvokeCommand(update.Message)) {
-                //}
+            _logger.Info($"Received '{messageText}', from: [Ch:{channelName}]{update.Message.Chat.Username}");
+
+            if (_telegramConfig.TopicNames.TryAdd(update.Message.ReplyToMessage.Chat.Id, channelName)) {
+                _logger.Info($"Cached {update.Message.ReplyToMessage.Chat.Id} <-> {channelName}");
+                _telegramConfig.SaveCache();
+            }
+            if (update.Type == UpdateType.Message && update.Message is not null && !update.Message!.From.IsBot) {
+                _relayActionTracker.AddAction(new SendMessageAction() {
+                    PlatformName = "Discord",
+                    ActionTime = DateTime.UtcNow,
+                    ChannelName = channelName,
+                    MessageContents = messageText
+                });
             }
 
             return;

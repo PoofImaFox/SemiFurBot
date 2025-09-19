@@ -7,6 +7,8 @@ using Discord.WebSocket;
 
 using SemiFursBot.Interfaces;
 using SemiFursBot.Services.Discord.Interfaces;
+using SemiFursBot.Services.Relay;
+using SemiFursBot.Services.Relay.Services;
 
 namespace SemiFursBot.Services.Discord.Commands {
     internal class DiscordCommandHandlerService : ICommandHandlerService {
@@ -15,15 +17,17 @@ namespace SemiFursBot.Services.Discord.Commands {
         private readonly InteractionService _interactionService;
         private readonly IServiceProvider _services;
         private readonly ILogger _logger;
+        private readonly IRelayActionTracker _relayActionTracker;
         private readonly DiscordSocketClient _discordSocketClient;
 
         public DiscordCommandHandlerService(DiscordSocketClient discordSocketClient, CommandService commandService,
-            InteractionService interactionService, IServiceProvider services, ILogger logger) {
+            InteractionService interactionService, IServiceProvider services, ILogger logger, IRelayActionTracker relayActionTracker) {
             _discordSocketClient = discordSocketClient;
             _commandService = commandService;
             _interactionService = interactionService;
             _services = services;
             _logger = logger;
+            _relayActionTracker = relayActionTracker;
         }
 
         public async Task InitializeAsync() {
@@ -41,6 +45,20 @@ namespace SemiFursBot.Services.Discord.Commands {
 
             _logger.Info("Registering commands with discord");
             await _interactionService.RegisterCommandsGloballyAsync();
+
+
+            _discordSocketClient.MessageReceived += DiscordSocketClient_MessageReceived;
+        }
+
+        private Task DiscordSocketClient_MessageReceived(SocketMessage arg) {
+            _relayActionTracker.AddAction(new SendMessageAction() {
+                PlatformName = "Telegram",
+                ActionTime = DateTime.Now,
+                ChannelName = arg.Channel.Name,
+                MessageContents = arg.Content
+            });
+
+            return Task.CompletedTask;
         }
 
         private async Task DiscordSocketClient_InteractionCreated(SocketInteraction arg) {
